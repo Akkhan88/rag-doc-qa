@@ -1,10 +1,11 @@
-loaded 213 pages
-Practice Tests Plus with key 
-PTE ACADEMICTM 
-PEARSON TEST OF ENGLISH ACADEMIC 
-FROM THE TEST DEVELOPERS 
-TEACHING , NOT JUST TESTING 
-• four complete practice tests 
-• sample answers from real candidates 
-• tips and strategies from the test writers 
-CD-ROM
+loaded 70 pages
+Module 5: Random Variables and 
+Distributions
+• Introduction to Random Variables
+• Probability functions
+• Discrete random variables with examples
+• Continuous random variables
+• Probability distributions
+• Bivariate, marginal, and conditional distributions
+• Cybersecurity case study
+• Summary slides

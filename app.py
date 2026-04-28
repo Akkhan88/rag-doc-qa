@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 load_dotenv()
 from langchain_community.document_loaders import PyPDFLoader
@@ -8,8 +9,23 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI
 
 
-loader = PyPDFLoader("/Users/thomasshelby/Desktop/Formal_Complaint_Form_(TUA_FM_AC_015).pdf")
-pages = loader.load()
+pdf_paths = [
+    "/Users/thomasshelby/Desktop/PST107/PST107_Week5_Random_variables_distributions.pdf",
+    "/Users/thomasshelby/Desktop/PST107/PST107_Module6_Expectation.pdf",
+    "/Users/thomasshelby/Desktop/PST107/PST107_Week7_Special_Distributions.pdf",
+    "/Users/thomasshelby/Desktop/PST107/PST107_Week8_Large_Random_Samples.pdf",
+]
+
+def load_pdf(path):
+    print(f"Loading: {os.path.basename(path)}")
+    result = PyPDFLoader(path).load()
+    print(f"Done: {os.path.basename(path)} ({len(result)} pages)")
+    return result
+
+with ThreadPoolExecutor() as executor:
+    results = executor.map(load_pdf, pdf_paths)
+
+pages = [page for doc_pages in results for page in doc_pages]
 print(f"loaded {len(pages)} pages")
 print(pages[0].page_content[:500])
 
@@ -27,13 +43,13 @@ print("Stored in ChromaDB")
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 
-query = input("Ask a question: ")
-results = db.similarity_search(query, k=3)
-
-context = "\n".join([r.page_content for r in results])
-
-response = llm.invoke(
-    f"Answer the question based ONLY on this context. If the answer is not in the context, say 'I don't know'.\n\nContext:\n{context}\n\nQuestion: {query}"
-)
-
-print(response.content)
+while True:
+    query = input("\nAsk a question (type 'quit' to exit): ")
+    if query.lower() == 'quit':
+        break
+    results = db.similarity_search(query, k=3)
+    context = "\n".join([r.page_content for r in results])
+    response = llm.invoke(
+        f"Answer the question based ONLY on this context. If the answer is not in the context, say 'I don't know'.\n\nContext:\n{context}\n\nQuestion: {query}"
+    )
+    print(response.content)
