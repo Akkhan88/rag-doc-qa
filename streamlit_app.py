@@ -27,30 +27,40 @@ if uploaded_file:
                     chunk_size=500, chunk_overlap=50
                 ).split_documents(pages)
                 st.session_state.vectorstore = Chroma.from_documents(
-                    chunks, OpenAIEmbeddings()
+                    chunks, OpenAIEmbeddings(),
+                    persist_directory="./chroma_db"
                 )
                 st.session_state.file_key = file_key
                 st.success(f"Ready — {len(pages)} pages, {len(chunks)} chunks indexed.")
             finally:
                 os.unlink(tmp_path)
 
-    question = st.text_input("Ask a question about the document")
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-    if st.button("Ask") and question.strip():
+    question = st.text_input("Ask a question about the document")
+    llm = ChatOpenAI(model="gpt-4o-mini")
+
+    if question:
         with st.spinner("Searching and generating answer..."):
             db = st.session_state.vectorstore
             hits = db.similarity_search(question, k=3)
             context = "\n\n".join(r.page_content for r in hits)
-            llm = ChatOpenAI(model="gpt-4o-mini")
-            response = llm.invoke(
-                "Answer the question based ONLY on the context below. "
-                "If the answer is not in the context, say \"I don't know\".\n\n"
-                f"Context:\n{context}\n\nQuestion: {question}"
-            )
-        st.markdown("**Answer:**")
-        st.write(response.content)
 
-        with st.expander("Source chunks used"):
-            for i, hit in enumerate(hits, 1):
-                st.markdown(f"**Chunk {i}** (page {hit.metadata.get('page', '?')})")
-                st.write(hit.page_content)
+            history = "\n".join(
+                f"User: {q}\nAI: {a}"
+                for q, a in st.session_state.chat_history
+            )
+
+            response = llm.invoke(
+                f"Previous conversation:\n{history}\n\n"
+                f"Context:\n{context}\n\n"
+                f"Answer based ONLY on the context. "
+                f"If not in context, say 'I don't know'.\n\n"
+                f"Question: {question}"
+            )
+
+            st.session_state.chat_history.append(
+                (question, response.content)
+            )
+            st.write(response.content)
